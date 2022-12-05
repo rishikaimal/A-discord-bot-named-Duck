@@ -7,42 +7,66 @@ import datetime
 import aiohttp
 import requests
 import os
+from discord import app_commands
+
 
 cwd = Path(__file__).parents[0]
 cwd = str(cwd)
 print(f"{cwd}\n-----")  
-
 secret_file = json.load(open(cwd+'/secrets.json'))
-intents = discord.Intents.all()
-bot = commands.Bot(command_prefix='.', case_insensitive=True, intents=intents)
+
+class Bot(commands.Bot):
+    def __init__(self):
+        intents = discord.Intents.default()
+        intents.message_content = True
+        super().__init__(command_prefix = ".", intents=intents)
+
+    async def setup_hook(self):
+        await self.tree.sync(guild= discord.Object(id=guildId))
+        print(f"-----\nSlash commands have synced.\nBooting up the bot...\n-----")
+
+bot = Bot()
+
+
 bot.config_token = secret_file['token']
 logging.basicConfig(level=logging.INFO)
 
-if __name__ == "__main__":
-  for file in os.listdir(cwd + "/cogs"):
-    if file.endswith(".py") and not file.startswith("_"):
-      bot.load_extension(f"cogs.{file[:-3]}")
+
 
 
 @bot.event
 async def on_ready():
-    print(f"-----\nLogged in successfully.\n-----\nName : {bot.user.name}\nID : {bot.user.id}\nCurrent prefix : .\n-----")
+    print(f"-----\nBot booted up successfully.\n-----\nName : {bot.user.name}\nCurrent prefix : .\n-----")
     await bot.change_presence(activity=discord.Game(name=f"Listening to .help"))
 
 #definitions
 bot.uptime = datetime.datetime.utcnow()
+guildId = 959774580757626970
 
-"""#cogs
-cogs = [music]
-for i in range(len(cogs)):
-    cogs(i).setup(client)"""
+
+#APP COMMANDS
+""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+
+@bot.tree.context_menu(name='Hi', guild= discord.Object(id=guildId))
+async def hello(interaction: discord.Integration, message: discord.Message):
+    await interaction.response.send_message("Hellu")
+
+
+#HYBRID HI COMMAND
+""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+async def on_command_error(self,ctx,error):
+    await ctx.reply(error, ephemeral=True)
+
+
+@bot.hybrid_command(name = "hi", with_app_command = True, description = "Greets the user.")
+@app_commands.guilds(discord.Object(id=guildId))
+async def test(ctx: commands.Context):
+    await ctx.defer(ephemeral=False)
+    await ctx.reply(f"Hello, {ctx.author.mention}!")
 
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
-#HI COMMAND
-@bot.command(name='hi', aliases=['hello','hey'])   
-async def _hi(ctx):
-    await ctx.send(f"Hello, {ctx.author.mention}!")
+
 
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
@@ -95,8 +119,10 @@ async def info(ctx):
 @bot.command(aliases=['shutdown'])
 @commands.is_owner()
 async def logout(ctx):
-    await ctx.send("Logging out... :wave:")
-    await bot.logout()
+    em = discord.Embed(title="Signing out!", color=discord.Colour.gold())
+    em.set_image(url="https://media.tenor.com/QV8FWvZoGp0AAAAi/canard-bye.gif")
+    await ctx.send(embed=em)
+    await ctx.bot.close()
 
 @logout.error
 async def logout_error(ctx, error):
@@ -108,9 +134,11 @@ async def logout_error(ctx, error):
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
 #PING COMMAND
-@bot.command()
-async def ping(ctx):
-    await ctx.send(f"Pong! `{round(bot.latency * 1000)}ms`")
+@bot.hybrid_command(name = "ping", with_app_command = True, description = "Shows the latency of the bot.")
+@app_commands.guilds(discord.Object(id=guildId))
+async def test(ctx: commands.Context):
+    await ctx.defer(ephemeral=True)
+    await ctx.reply(f"Pong! `{round(bot.latency * 1000)}ms`")
 
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
@@ -246,11 +274,14 @@ async def rrole(ctx, member: discord.Member, role):
 
 #AVATAR COMMAND
 @bot.command(aliases=['avatar'])
-async def av(ctx, member: discord.Member):
-    pfp = discord.User.avatar_url_as(member)
+async def av(ctx, *, member: discord.Member = None):
+    if not member:
+        member = ctx.message.author
+    userAvatar = member.avatar.url
     em = discord.Embed(title=f"{member.name}'s avatar:", color=discord.Colour.gold())
-    em.set_image(url=pfp)
+    em.set_image(url=userAvatar)
     await ctx.send(embed=em)
+
 
 
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
@@ -360,7 +391,7 @@ async def addrole(ctx):
     em.add_field(name="**Syntax**", value="`.addrole [user] [role]`")
     await ctx.send(embed=em)
 
-@help.command() #removerole
+@help.command() #rrole
 async def rrole(ctx):
     em = discord.Embed(title="RemoveRole", description="Removes the mentioned role from the user.", color=ctx.author.color)
     em.set_footer(text="Example: .rrole @Jhon Members")
