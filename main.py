@@ -17,7 +17,7 @@ secret_file = json.load(open(cwd+'/secrets.json'))
 
 class Bot(commands.Bot):
     def __init__(self):
-        intents = discord.Intents.default()
+        intents = discord.Intents.all()
         intents.message_content = True
         super().__init__(command_prefix = ".", intents=intents)
 
@@ -38,10 +38,11 @@ logging.basicConfig(level=logging.INFO)
 async def on_ready():
     print(f"-----\nBot booted up successfully.\n-----\nName : {bot.user.name}\nCurrent prefix : .\n-----")
     await bot.change_presence(activity=discord.Game(name=f"Listening to .help"))
+    bot.started = datetime.datetime.now()
 
 #definitions
 bot.uptime = datetime.datetime.utcnow()
-guildId = 959774580757626970
+guildId = 838611549894475777
 
 
 #APP COMMANDS
@@ -107,7 +108,7 @@ async def purge(ctx, limit=5, member: discord.Member=None):
 async def info(ctx):
     dpyversion = discord.__version__
     serverCount = len(bot.guilds)
-    membercount = len(set(bot.get_all_members()))
+    membercount = len(bot.users)
     em = discord.Embed(title="Bot Info:", description=f"I am in {serverCount} servers with a total of {membercount} members.", color=ctx.author.color)
     em.add_field(name="discord.py version:", value=f"{dpyversion}", inline=False)
     em.add_field(name="Made by:", value="INFERNO#1043", inline=False)
@@ -145,17 +146,8 @@ async def test(ctx: commands.Context):
 #UPTIME COMMAND
 @bot.command()
 async def uptime(ctx):
-    time = datetime.datetime.utcnow() - bot.uptime
-    hours, remainder = divmod(int(time.total_seconds()), 3600)
-    minutes, seconds = divmod(remainder, 60)
-    days, hours = divmod(hours, 24)
-
-    if days:
-        fmt = '{d} days, {h} hours, {m} minutes, and {s} seconds'
-    else:
-        fmt = '{h} hours, {m} minutes, and {s} seconds'
-
-    await ctx.send(fmt.format(d=days, h=hours, m=minutes, s=seconds))
+    uptime = int(bot.started.timestamp())
+    await ctx.send(f"Last Reboot: <t:{uptime}:R>")
 
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
