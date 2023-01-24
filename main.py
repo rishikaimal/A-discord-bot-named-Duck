@@ -2,18 +2,18 @@ import discord
 from discord.ext import commands
 import logging
 from pathlib import Path 
-import json
 import datetime
 import aiohttp
 import requests
 import os
 from discord import app_commands
+from dotenv import load_dotenv
 
 
 cwd = Path(__file__).parents[0]
 cwd = str(cwd)
 print(f"{cwd}\n-----")  
-secret_file = json.load(open(cwd+'/secrets.json'))
+
 
 class Bot(commands.Bot):
     def __init__(self):
@@ -26,9 +26,9 @@ class Bot(commands.Bot):
         print(f"-----\nSlash commands have synced.\nBooting up the bot...\n-----")
 
 bot = Bot()
+load_dotenv()
 
-
-bot.config_token = secret_file['token']
+bot.config_token = os.getenv('TOKEN')
 logging.basicConfig(level=logging.INFO)
 
 
